@@ -169,7 +169,7 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
              disable.logging = TRUE,
              height=1500,width=1500, "Fig1/Plots/venn_diagram.png")
 
-# linear modelling to control for expression
+# modelling to control for expression
 
 data_master_all %>% 
   mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
@@ -182,16 +182,8 @@ data_master_all %>%
   dplyr::select(GENEID,Rhythmic.g,Both_us.g,RNA_m,JTK_adjphase) %>%
   mutate(RNA_m_log10=log10(RNA_m)) %>% unique -> data_model
 
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10") -> lm_model
-summary(lm_model)
 
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g") -> lm_model
-summary(lm_model)
-
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + Rhythmic.g") -> lm_model
-summary(lm_model)
-
-# logistic ----------------------------------------------------------------
+# logistic (figure 1E) ----------------------------------------------------------------
 
 glm(data = data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g",family = binomial(link="logit")) -> mod3
 summary(mod3)
@@ -199,62 +191,7 @@ summary(mod3)
 exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
   as_tibble(rownames="row")
 
-#summary(mod3)$coefficients %>% round(2) %>% view
-
-glm(data = data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + Rhythmic.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
-  as_tibble(rownames="row")
-
-# expression binned -------------------------------------------------------
-
-data_model %>% mutate(RNA_bin=cut(RNA_m_log10,(-12):0,include.lowest=TRUE))%>% filter(RNA_m!=0) -> data_model_2
-
-glm(data = data_model_2,formula = "Rhythmic.g~RNA_bin + Both_us.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-#summary(mod3)$coefficients %>% round(2) %>% view
-
-glm(data = data_model_2,formula = "Both_us.g~RNA_bin + Rhythmic.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-
-# expression stratified -------------------------------------------------------
-
-data_model%>% filter(RNA_m!=0) %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model$RNA_m_log10,probs = c(0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1)),include.lowest=TRUE)) %>%
-  mutate(RNA_bin=as.numeric(RNA_bin))-> data_model_2
-
-quartOR <- c()
-for(i in 1:10){
-  glm(data = data_model_2 %>% filter(RNA_bin==i),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g",family = binomial(link="logit")) -> mod3
-  exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
-    as_tibble(rownames="row") %>% .[2,] -> temp
-  temp$row <- paste("quantile",i)
-  quartOR<- rbind(quartOR,temp)
-}
-data_model_2 %>% ungroup %>% group_by(RNA_bin) %>% summarise(total=length(Rhythmic.g),numberRhy=sum(Rhythmic.g),numberGR=sum(Both_us.g)) %>%
-  dplyr::select(-RNA_bin) %>% cbind(quartOR,.) %>%
-  as_tibble  -> quantiletable
-
-# quantiletable %>%
-#   mutate(OR=ifelse(V1>100,NA,round(V1,digits=2))) %>%
-#   mutate(`95% CI`=paste(round(`2.5 %`,2),"-",round(`97.5 %`,2))) %>%
-#   dplyr::select(row,OR,`95% CI`,total,numberRhy,numberGR) %>% view
-
-pd_width <- 0.6
-quantiletable %>% 
-  mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
-  filter(row!="quantile 1") %>% ggplot(aes(x=row,y=V1)) +
-  geom_hline(aes(yintercept = 1), size = .25, linetype = "dashed") +
-  geom_errorbar(aes(ymax = `97.5 %`, ymin = `2.5 %`), size = .5, width = .4,
-                position = position_dodge(width = pd_width)) +
-  geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-
-
-# expression stratified not adjusted for expression -------------------------------------------------------
+# expression stratified (Supplemental 1B) -------------------------------------------------------
 
 data_model%>% filter(RNA_m!=0) %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model$RNA_m_log10,probs = c(0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1)),include.lowest=TRUE)) %>%
   mutate(RNA_bin=as.numeric(RNA_bin))-> data_model_2
@@ -286,65 +223,46 @@ quantiletable %>%
   geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
-ggsave(filename = "~/GRanalysis_master/Fig1/plots/supp_quants.png",width=5,height=4)
+ggsave(filename = "Fig1/Plots/supp_quants.png",width=5,height=4)
 
 quantiletable %>%
   mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
   ggplot(aes(x=medRNA,y=numberRhy)) + geom_point() + scale_x_log10()
 
 
-# phase -------------------------------------------------------------------
+# proportion rhythmic (supplemental 1A) -----------------------------------
 
-# logistic ----------------------------------------------------------------
+prob_len <- 50
 
-multinom("JTK_adjphase~RNA_m_log10 + Both_us.g", data = data_model_2) -> mod_multinom
-summary(mod_multinom)
+prob_seq <- seq(0,1,length=prob_len+1)
 
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
+data_model%>% filter(RNA_m!=0, Both_us.g==1) -> data_model_GR
 
-glm(data = data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
+## quantiles separately for GR and no GR
+data_model_GR %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model_GR$RNA_m_log10,probs = prob_seq),include.lowest=TRUE)) %>%
+  mutate(RNA_bin=as.numeric(RNA_bin)) %>% mutate(GR="GR binding") -> data_model_GR
+data_model%>% filter(RNA_m!=0, Both_us.g==0) -> data_model_noGR
+data_model_noGR %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model_noGR$RNA_m_log10,probs = prob_seq),include.lowest=TRUE)) %>%
+  mutate(RNA_bin=as.numeric(RNA_bin))%>% mutate(GR="No GR binding")-> data_model_noGR
 
-# expression binned -------------------------------------------------------
+rbind(data_model_GR,data_model_noGR) -> data_model_together
 
+data_model_together %>% ungroup %>% group_by(RNA_bin,GR) %>% summarise(total=length(Rhythmic.g),numberRhy=sum(Rhythmic.g),numberGR=sum(Both_us.g),meanRNA=mean(RNA_m),medRNA=median((RNA_m))) %>%
+  mutate(percentRhy=numberRhy/total) %>%
+  dplyr::select(-RNA_bin) %>%
+  as_tibble  -> quantiletable
 
-library(nnet)
-multinom("JTK_adjphase~RNA_bin + Both_us.g", data = data_model_2) -> mod_multinom
-summary(mod_multinom)
+##gam
+quantiletable %>%
+  ggplot(aes(x=medRNA,y=percentRhy,colour=GR,fill=GR)) + 
+  geom_point(alpha=0.3) +
+  scale_x_log10() +
+  theme_bw() +
+  geom_smooth(alpha=.3,method = "gam",fullrange=TRUE) +
+  ylab("Proportion Rhythmic")+
+  xlab("Median RNA for quantile") +
+  theme(legend.title = element_blank())+
+  scale_colour_manual(values = c("red","black"))+
+  scale_fill_manual(values = c("red","black")) -> p
 
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model_2,formula = "Both_us.g~RNA_bin + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-
-
-
-#### adjphase in rhythmic only
-
-# logistic ----------------------------------------------------------------
-data_model_3 <- data_model_2 %>% filter(Rhythmic.g==TRUE)
-multinom("JTK_adjphase~RNA_m_log10 + Both_us.g", data = data_model_3) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model %>% filter(RNA_m!=0) %>% filter(Rhythmic.g==TRUE),formula = "Both_us.g~RNA_m_log10 + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-#binned 
-multinom("JTK_adjphase~RNA_bin + Both_us.g", data = data_model_3) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model_3,formula = "Both_us.g~RNA_bin + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
+ggsave(filename = "Fig1/plots/suppB.png",p,width=6,height=4)
