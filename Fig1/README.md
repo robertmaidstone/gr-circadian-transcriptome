@@ -1,2 +1,6 @@
-# GR_CircadianLiverTranscriptome
- Code to recreate analysis done for paper "Glucocorticoid-dependence and independence of the circadian liver transcriptome"
+# Figure 1
+ Code to recreate figure 1
+ 
+ ## paschoanalysis_fromcsv.R
+ 
+ fig 1 C & E, supplemental figure 1 A & B
