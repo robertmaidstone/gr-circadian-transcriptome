@@ -2,7 +2,6 @@
 library(tidyverse)
 library(patchwork)
 
-setwd("~/GRanalysis_master/Fig1/")
 load(file="Data/RNAChIPtogether_GRdist.RData")
 load("Data/promoter_counts_reverb.RData")
 
