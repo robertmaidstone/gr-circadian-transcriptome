@@ -6,7 +6,7 @@ library(patchwork)
 library(pracma)
 
 load(file="Data/RNAChIPtogether_GRdist.RData")
-load("Fig2/Data/paschodata.RData")
+load("Data/paschodata.RData")
 
 data_master_all_unorm %>% 
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA1:RNA24) %>%
@@ -127,7 +127,7 @@ BBBCCDD
 "
 
 bar1 + legend_bar + clust_noGR + clust_GR+ plot_layout(design = layout) -> clust_plot
-ggsave(plot = clust_plot,filename = "clust_plot_fitz.png",width=10,height=5)
+#ggsave(plot = clust_plot,filename = "clust_plot_fitz.png",width=10,height=5)
 
 ################
 
@@ -227,5 +227,5 @@ BBBCCDD
 "
 
 bar1 + legend_bar + clust_noGR + clust_GR+ plot_layout(design = layout) -> clust_detrend
-ggsave(plot = clust_detrend,filename = "clust_detrend_fitz.png",width=10,height=5)
+ggsave(plot = clust_detrend,filename = "Fig1/Plots/clust_detrend_fitz.png",width=10,height=5)
   
