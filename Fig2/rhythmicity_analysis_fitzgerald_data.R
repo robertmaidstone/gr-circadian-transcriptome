@@ -1,14 +1,9 @@
-
+library(tidyverse)
 library(MetaCycle)
 library(patchwork)
 library(nnet)
 
-setwd("~/GRanalysis_master")
-
-read.csv("~/GRanalysis_master/pascho.csv",sep = ",",header = F) ->RNA_1
-
-
-library(tidyverse)
+read.csv("Data/pascho.csv",sep = ",",header = F) ->RNA_1
 
 RNA_1 %>% head
 tibble(Gene=RNA_1$V3,
@@ -46,20 +41,14 @@ RNA_n[,-1] %>% apply(1,var) -> count_vars
 # JTK cycle analysis ------------------------------------------------------
 
 
-write.table(RNA_n, file="RNA_n.txt",
+write.table(RNA_n, file="Data/RNA_n_forJTK.txt",
             sep="\t", quote=FALSE, row.names=FALSE)
 
-Meta_Output <- meta2d(infile="RNA_n.txt", filestyle="txt",
+Meta_Output <- meta2d(infile="Data/RNA_n_forJTK.txt", filestyle="txt",
                       outputFile = FALSE, timepoints=rep(seq(0, 20, by=4),each=4),
                       cycMethod=c("JTK"), outIntegration="both",minper = 24,maxper = 24)
 
 cbind(RNA_n,(Meta_Output$meta %>% dplyr::select(JTK_pvalue,JTK_adjphase))) -> RNA_n_jtk
-
-
-RNA_n_jtk %>% filter(JTK_pvalue<0.05) %>% ggplot(aes(y=JTK_adjphase)) +
-  geom_bar()+ xlim(c(0,24))+
-  coord_polar() 
-
 
 RNA_n_jtk %>%
   filter(JTK_pvalue<0.05) %>%
@@ -71,21 +60,20 @@ RNA_n_jtk %>%
   scale_x_continuous(breaks=c(0,3,6,9,12,15,18,21,24))
 
 #
-read.csv("~/GRanalysis_master/conv_pascho.txt",sep = "\t") ->conv_1
-
+read.csv("Data/conv_pascho.txt",sep = "\t") ->conv_1
 
 RNA_n_jtk %>% merge(conv_1 %>% dplyr::select(From,To),by.x = "Gene",by.y="From",all.x = T)  -> ll
 RNA_rejig  %>% merge(conv_1 %>% dplyr::select(From,To),by.x = "Gene",by.y="From",all.x = T)  -> ll_unorm
 
 ll  -> RNA_n_jtk_2
 
-load("Fig2/data/enhancer_withRNA.RData")
+load("Data/enhancer_withRNA.RData")
 
 enh_withRNA %>% head
 merge(RNA_n_jtk_2,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all
 
 merge(ll_unorm,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all_unorm
-save(data_master_all_unorm,file = "~/GRanalysis_master/Fig2/data/paschodata.RData")
+save(data_master_all_unorm,file = "Data/paschodata_enhancer.RData")
 
 (data_master_all %>% 
     mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
@@ -160,10 +148,9 @@ ggplot()+
 
 pplots/p_pval + plot_layout(heights=c(2,.6)) -> p_phase_p
 
-ggsave("Fig2/p_phase_p.png",p_phase_p,height =4,width = 6.5)
+ggsave("Fig2/Plots/p_phase_p.png",p_phase_p,height =4,width = 6.5)
 
 #
-
 
 data_master_all %>% 
   mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
@@ -177,6 +164,80 @@ data_master_all %>%
   unique %>%
   dplyr::select(-GENEID) %>%
   table 
+
+# Venn Diagram ------------------------------------------------------------
+
+data_master_all %>% 
+  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  dplyr::select(PROMID,GENEID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
+  unique %>%
+  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
+  dplyr::select(GENEID,Rhythmic,Both_us) %>% 
+  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  ungroup %>%
+  dplyr::select(GENEID,Rhythmic.g,Both_us.g) %>%
+  unique %>%
+  dplyr::select(-GENEID) -> venn_data
+
+library(VennDiagram) 
+venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_data$Rhythmic.g)), 
+             fill = c("white", "white"), 
+             disable.logging = TRUE,
+             category.names = c("" , "" ),
+             alpha = c(0.5, 0.5),
+             lwd =1,
+             cat.cex=0.6,
+             height=1500,width=1500, "Fig2/Plots/venn_diagram.png")
+
+### E ###
+data_model %>%
+  dplyr::mutate(Rhy=Rhythmic.g) %>%
+  dplyr::mutate(GR=Both_us.g) %>%
+  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GENEID) %>%
+  dplyr::mutate(GR_any=any(GR)) %>%
+  dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
+  dplyr::mutate(m.RNA=mean(RNA)) %>% 
+  dplyr::mutate(GRrhy=ifelse(GR_any&Rhy,"Rhythmic with \nGR binding at \nlinked enhancer",ifelse(GR_any,"Non rhythmic with \nGR binding at \nlinked enhancer",
+                                                                                                 ifelse(Rhy,"Rhythmic with \nno GR binding at \nlinked enhancer","Non rhythmic with \nno GR binding at \nlinked enhancer")))) %>%
+  dplyr::select(-RNA,-GR) %>%
+  ungroup %>%
+  unique %>%
+  mutate(GR_any=c("No GR binding", "GR binding")[GR_any+1]) %>%
+  ggplot(aes(x=m.RNA,y=GRrhy)) +
+  geom_jitter(colour="grey",alpha=.5,height=.2,shape=16) +
+  geom_boxplot(fill=NA) +
+  #scale_x_log10(name="RPKM") +
+  # scale_y_continuous(name="Density")+
+  #scale_colour_manual(values = c("red","black"))+
+  ylab("") +
+  theme_bw() +
+  theme(legend.position = c(0.75, .92),legend.background = element_blank()) +
+  guides(colour="none")  + scale_x_log10("Normalised Counts") -> RNA_plot
+
+ggsave(RNA_plot,filename = "Fig2/Plots/rna_boxplots_fitz.png",height = 3,width = 4)
+
+
+data_model %>%
+  dplyr::mutate(Rhy=Rhythmic.g) %>%
+  dplyr::mutate(GR=Both_us.g) %>%
+  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GENEID) %>%
+  dplyr::mutate(GR_any=any(GR)) %>%
+  dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
+  dplyr::mutate(m.RNA=mean(RNA)) %>% 
+  dplyr::mutate(GRrhy=ifelse(GR_any&Rhy,"Rhythmic with \nGR binding at \nlinked enhancer",ifelse(GR_any,"Non rhythmic with \nGR binding at \nlinked enhancer",
+                                                                                                 ifelse(Rhy,"Rhythmic with \nno GR binding at \nlinked enhancer","Non rhythmic with \nno GR binding at \nlinked enhancer")))) %>%
+  dplyr::select(-RNA,-GR) %>%
+  ungroup %>%
+  unique %>%
+  mutate(GR_any=c("No GR binding", "GR binding")[GR_any+1])-> ll
+
+
+table(ll$Rhy,ll$GR_any)
+res.aov2 <- aov(m.RNA ~ Rhy + GR_any, data = ll)
+summary(res.aov2)
+
 
 # homer bed files ---------------------------------------------------------
 
@@ -198,32 +259,9 @@ temp_dat %>%
   mutate(id=1:(dim(temp_dat)[1])) %>%
   mutate(` `="") %>%
   mutate(strand=".") %>%
-  write.table(file = "Fig2/data/GRboundRhythmic_forHomer.bed",sep = "\t",quote = FALSE,row.names = F)
+  write.table(file = "Data/GRboundRhythmicenhancers_forHomer.bed",sep = "\t",quote = FALSE,row.names = F)
 
-# -------------------------------------------------------------------------
-
-
-data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
-  unique %>%
-  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(GENEID,Rhythmic,Both_us) %>% 
-  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
-  ungroup %>%
-  dplyr::select(GENEID,Rhythmic.g,Both_us.g) %>%
-  unique %>%
-  dplyr::select(-GENEID) -> venn_data
-
-library(VennDiagram) 
-venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_data$Rhythmic.g)), 
-             fill = c("white", "white"), 
-             category.names = c("" , "" ),
-             alpha = c(0.5, 0.5),
-             lwd =1,
-             cat.cex=0.6,
-             height=1500,width=1500, "Fig2/venn_diagram.png")
-
+# modelling ---------------------------------------------------------------
 
 data_master_all %>% 
   mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
@@ -236,15 +274,6 @@ data_master_all %>%
   dplyr::select(GENEID,Rhythmic.g,Both_us.g,RNA_m,JTK_adjphase) %>%
   mutate(RNA_m_log10=log10(RNA_m)) %>% unique -> data_model
 
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10") -> lm_model
-summary(lm_model)
-
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g") -> lm_model
-summary(lm_model)
-
-lm(data=data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + Rhythmic.g") -> lm_model
-summary(lm_model)
-
 # logistic ----------------------------------------------------------------
 
 glm(data = data_model %>% filter(RNA_m!=0),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g",family = binomial(link="logit")) -> mod3
@@ -252,54 +281,6 @@ summary(mod3)
 
 exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
   as_tibble(rownames="row")
-
-glm(data = data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + Rhythmic.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
-  as_tibble(rownames="row")
-
-# expression binned -------------------------------------------------------
-
-data_model %>% mutate(RNA_bin=cut(RNA_m_log10,(-12):0,include.lowest=TRUE))%>% filter(RNA_m!=0) -> data_model_2
-
-glm(data = data_model_2,formula = "Rhythmic.g~RNA_bin + Both_us.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-glm(data = data_model_2,formula = "Both_us.g~RNA_bin + Rhythmic.g",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-# expression stratified -------------------------------------------------------
-
-data_model%>% filter(RNA_m!=0) %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model$RNA_m_log10,probs = c(0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1)),include.lowest=TRUE)) %>%
-  mutate(RNA_bin=as.numeric(RNA_bin))-> data_model_2
-
-quartOR <- c()
-for(i in 1:10){
-  glm(data = data_model_2 %>% filter(RNA_bin==i),formula = "Rhythmic.g~RNA_m_log10 + Both_us.g",family = binomial(link="logit")) -> mod3
-  exp(cbind(coef(mod3)[2:3],confint.default(mod3,2:3))) %>%
-    as_tibble(rownames="row") %>% .[2,] -> temp
-  temp$row <- paste("quantile",i)
-  quartOR<- rbind(quartOR,temp)
-}
-data_model_2 %>% ungroup %>% group_by(RNA_bin) %>% summarise(total=length(Rhythmic.g),numberRhy=sum(Rhythmic.g),numberGR=sum(Both_us.g)) %>%
-  dplyr::select(-RNA_bin) %>% cbind(quartOR,.) %>%
-  as_tibble  -> quantiletable
-
-quantiletable %>%
-  mutate(OR=ifelse(V1>100,NA,round(V1,digits=2))) %>%
-  mutate(`95% CI`=paste(round(`2.5 %`,2),"-",round(`97.5 %`,2))) %>%
-  dplyr::select(row,OR,`95% CI`,total,numberRhy,numberGR) %>% view
-
-pd_width <- 0.6
-quantiletable %>% 
-  mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
-  #filter(row!="quantile 1") %>%
-  ggplot(aes(x=row,y=V1)) +
-  geom_hline(aes(yintercept = 1), size = .25, linetype = "dashed") +
-  geom_errorbar(aes(ymax = `97.5 %`, ymin = `2.5 %`), size = .5, width = .4,
-                position = position_dodge(width = pd_width)) +
-  geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")
 
 # expression stratified not adjusted for expression  -------------------------------------------------------
 
@@ -334,115 +315,4 @@ quantiletable %>%
   geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
-ggsave(filename = "~/GRanalysis_master/Fig2/plots/supp_quants.png",width=5,height=4)
-
-quantiletable %>%
-  mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
-  ggplot(aes(x=medRNA,y=numberRhy)) + geom_point() + scale_x_log10() + theme_bw()
-# phase -------------------------------------------------------------------
-
-# logistic ----------------------------------------------------------------
-
-multinom("JTK_adjphase~RNA_m_log10 + Both_us.g", data = data_model_2) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model %>% filter(RNA_m!=0),formula = "Both_us.g~RNA_m_log10 + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-# expression binned -------------------------------------------------------
-
-
-library(nnet)
-library()
-multinom("JTK_adjphase~RNA_bin + Both_us.g", data = data_model_2) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model_2,formula = "Both_us.g~RNA_bin + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-
-
-
-#### adjphase in rhythmic only
-
-# logistic ----------------------------------------------------------------
-data_model_3 <- data_model_2 %>% filter(Rhythmic.g==TRUE)
-multinom("JTK_adjphase~RNA_m_log10 + Both_us.g", data = data_model_3) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model %>% filter(RNA_m!=0) %>% filter(Rhythmic.g==TRUE),formula = "Both_us.g~RNA_m_log10 + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-#binned 
-multinom("JTK_adjphase~RNA_bin + Both_us.g", data = data_model_3) -> mod_multinom
-summary(mod_multinom)
-
-z <- summary(mod_multinom)$coefficients/summary(mod_multinom)$standard.errors
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
-
-glm(data = data_model_3,formula = "Both_us.g~RNA_bin + JTK_adjphase",family = binomial(link="logit")) -> mod3
-summary(mod3)
-
-####
-
-### E ###
-data_model %>%
-  dplyr::mutate(Rhy=Rhythmic.g) %>%
-  dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
-  dplyr::mutate(GR_any=any(GR)) %>%
-  dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
-  dplyr::mutate(m.RNA=mean(RNA)) %>% 
-  dplyr::mutate(GRrhy=ifelse(GR_any&Rhy,"Rhythmic with \nGR binding at \nlinked enhancer",ifelse(GR_any,"Non rhythmic with \nGR binding at \nlinked enhancer",
-                                                                                                 ifelse(Rhy,"Rhythmic with \nno GR binding at \nlinked enhancer","Non rhythmic with \nno GR binding at \nlinked enhancer")))) %>%
-  dplyr::select(-RNA,-GR) %>%
-  ungroup %>%
-  unique %>%
-  mutate(GR_any=c("No GR binding", "GR binding")[GR_any+1]) %>%
-  ggplot(aes(x=m.RNA,y=GRrhy)) +
-  geom_jitter(colour="grey",alpha=.5,height=.2,shape=16) +
-  geom_boxplot(fill=NA) +
-  #scale_x_log10(name="RPKM") +
-  # scale_y_continuous(name="Density")+
-  #scale_colour_manual(values = c("red","black"))+
-  ylab("") +
-  theme_bw() +
-  theme(legend.position = c(0.75, .92),legend.background = element_blank()) +
-  guides(colour="none")  + scale_x_log10("Normalised Counts") -> RNA_plot
-
-ggsave(RNA_plot,filename = "Fig2/plots/rna_boxplots_fitz.png",height = 3,width = 4)
-
-
-data_model %>%
-  dplyr::mutate(Rhy=Rhythmic.g) %>%
-  dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
-  dplyr::mutate(GR_any=any(GR)) %>%
-  dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
-  dplyr::mutate(m.RNA=mean(RNA)) %>% 
-  dplyr::mutate(GRrhy=ifelse(GR_any&Rhy,"Rhythmic with \nGR binding at \nlinked enhancer",ifelse(GR_any,"Non rhythmic with \nGR binding at \nlinked enhancer",
-                                                                                                 ifelse(Rhy,"Rhythmic with \nno GR binding at \nlinked enhancer","Non rhythmic with \nno GR binding at \nlinked enhancer")))) %>%
-  dplyr::select(-RNA,-GR) %>%
-  ungroup %>%
-  unique %>%
-  mutate(GR_any=c("No GR binding", "GR binding")[GR_any+1])-> ll
-
-
-table(ll$Rhy,ll$GR_any)
-res.aov2 <- aov(m.RNA ~ Rhy + GR_any, data = ll)
-summary(res.aov2)
+ggsave(filename = "Fig2/Plots/supp_quants.png",width=5,height=4)
