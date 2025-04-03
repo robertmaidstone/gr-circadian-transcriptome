@@ -1,5 +1,3 @@
-
-
 #compareRhythms phases
 
 cbind(RNA_n[,],RNA_n[,-1]) -> RNA_CR
@@ -35,13 +33,12 @@ data_forCR[,-1]<-mean(count_sums) *data_forCR[,-1]
 #data_forCR <- FC_RNA_norm[!((num_zeros_HET==24)| (num_zeros_WT==24)),]
 
 CR_out <- compareRhythms_model_select_diffrhy(data=data_forCR,
-                                                 exp_design=exp_design,
-                                                 schwarz_wt_cutoff = 0.6,
-                                                 just_classify = FALSE,
-                                                 diffrhy = TRUE)
+                                              exp_design=exp_design,
+                                              schwarz_wt_cutoff = 0.6,
+                                              just_classify = FALSE,
+                                              diffrhy = TRUE)
 table(CR_out$results$category) #with diffrhy category
 table(CR_out$results$cat_star) #with diffrhy category split and added to loss, gain and change
-
 
 # convert phases to 24hr clock
 CR_out$results %>% as_tibble() %>%
@@ -60,18 +57,15 @@ CR_phases %>% filter(category=="same") %>%# filter(group=="WT_phase") %>%
   coord_polar(start=-pi/12) +
   scale_x_binned(breaks= c(-1,1,3,5,7,9,11,13,15,17,19,21,23))
 
-setwd("~/GRanalysis_master/GR_CircadianLiverTranscriptome/")
 read.csv("Data/conv_pascho.txt",sep = "\t") ->conv_1
 tibble(geneID=data_forCR[,1],CRID=CR_out$mppa$geneID) %>% merge(CR_phases,by.x="CRID",by.y="id") %>%
   merge(conv_1 %>% dplyr::select(From,To),by.x = "geneID",by.y="From",all.x = T)  -> ll
 
 
-load("Data/RNAChIPtogether_GRdist.RData")
+load("Data/enhancer_withRNA.RData")
 
-data_master %>% head
-merge(ll,data_master,by.x="To",by.y="GENEID",all=TRUE) -> data_master_all
-
-
+enh_withRNA %>% head
+merge(ll,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all
 
 (data_master_all %>% 
     dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,category,WT_phase) %>%
@@ -144,7 +138,7 @@ ggplot()+
 
 pplots/p_pval + plot_layout(heights=c(2,.6)) -> p_phase_p
 
-ggsave("Fig1/Plots/p_phase_p_CR.png",p_phase_p,height =4,width = 6.5)
+ggsave("Fig2/Plots/p_phase_p_CR.png",p_phase_p,height =4,width = 6.5)
 
 # Venn diagram
 
@@ -167,4 +161,4 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
              lwd =1,
              cat.cex=0.6,
              disable.logging = TRUE,
-             height=1500,width=1500, "Fig1/Plots/venn_diagram_CR.png")
+             height=1500,width=1500, "Fig2/Plots/venn_diagram_CR.png")
