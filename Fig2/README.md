@@ -6,6 +6,10 @@ Code to recreate figure 2
 
 Figure 2D and E and bed file creation for use by Homer to generate figure 2F. Modelling of rhythmicity for supplemental figure 2A,B and C
 
+## genomiclocationplots.R
+
+fig 2B
+
 ## compareRhythms_fitzgerald_data.R
 
 fig2D using compareRhythms instead of JTK-cycle - this might go into supplemental
