@@ -13,3 +13,7 @@ fig 1D
 ## TF_RNA_density_plots.R
 
 fig 1B
+
+## compareRhythms_fitzgerald_data.R
+
+fig1C using compareRhythms instead of JTK-cycle - this might go into supplemental
