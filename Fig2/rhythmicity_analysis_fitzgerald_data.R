@@ -316,3 +316,38 @@ quantiletable %>%
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
 ggsave(filename = "Fig2/Plots/supp_quants.png",width=5,height=4)
+
+### supp 2B 
+prob_len <- 50
+prob_seq <- seq(0,1,length=prob_len+1)
+
+data_model%>% filter(RNA_m!=0, Both_us.g==1) -> data_model_GR
+
+## quantiles separately for GR and no GR
+data_model_GR %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model_GR$RNA_m_log10,probs = prob_seq),include.lowest=TRUE)) %>%
+  mutate(RNA_bin=as.numeric(RNA_bin)) %>% mutate(GR="GR binding") -> data_model_GR
+data_model%>% filter(RNA_m!=0, Both_us.g==0) -> data_model_noGR
+data_model_noGR %>% mutate(RNA_bin=cut(RNA_m_log10,quantile(data_model_noGR$RNA_m_log10,probs = prob_seq),include.lowest=TRUE)) %>%
+  mutate(RNA_bin=as.numeric(RNA_bin))%>% mutate(GR="No GR binding")-> data_model_noGR
+
+rbind(data_model_GR,data_model_noGR) -> data_model_together
+
+data_model_together %>% ungroup %>% group_by(RNA_bin,GR) %>% summarise(total=length(Rhythmic.g),numberRhy=sum(Rhythmic.g),numberGR=sum(Both_us.g),meanRNA=mean(RNA_m),medRNA=median((RNA_m))) %>%
+  mutate(percentRhy=numberRhy/total) %>%
+  dplyr::select(-RNA_bin) %>%
+  as_tibble  -> quantiletable
+
+##gam
+quantiletable %>%
+  ggplot(aes(x=medRNA,y=percentRhy,colour=GR,fill=GR)) + 
+  geom_point(alpha=0.3) +
+  scale_x_log10() +
+  theme_bw() +
+  geom_smooth(alpha=.3,method = "gam") +
+  ylab("Proportion Rhythmic")+
+  xlab("Median RNA for quantile") +
+  theme(legend.title = element_blank())+
+  scale_colour_manual(values = c("red","black"))+
+  scale_fill_manual(values = c("red","black")) -> p
+
+ggsave(filename = "Fig2/Plots/suppB.png",p,width=6,height=4)
