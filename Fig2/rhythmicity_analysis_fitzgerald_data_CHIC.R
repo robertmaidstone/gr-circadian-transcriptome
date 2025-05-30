@@ -262,11 +262,21 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
              height=1500,width=1500, "Fig2/Plots/venn_diagram_chic.png")
 
 ### E ###
+data_master_all %>% 
+  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA) %>%
+  unique %>%
+  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us,RNA) %>% 
+  as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  mutate(RNA_m=median(RNA)) %>%
+  ungroup -> data_model
+
 data_model %>%
   dplyr::mutate(Rhy=Rhythmic.g) %>%
   dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
+  dplyr::select(GeneID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GeneID) %>%
   dplyr::mutate(GR_any=any(GR)) %>%
   dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
   dplyr::mutate(m.RNA=mean(RNA)) %>% 
@@ -293,8 +303,8 @@ ggsave(RNA_plot,filename = "Fig2/Plots/rna_boxplots_fitz_chic.png",height = 3,wi
 data_model %>%
   dplyr::mutate(Rhy=Rhythmic.g) %>%
   dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
+  dplyr::select(GeneID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GeneID) %>%
   dplyr::mutate(GR_any=any(GR)) %>%
   dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
   dplyr::mutate(m.RNA=mean(RNA)) %>% 
@@ -336,9 +346,9 @@ temp_dat %>%
 # modelling ---------------------------------------------------------------
 
 data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  mutate(GENEID=GeneID,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
   mutate(RNA_m=data_master_all %>% dplyr::select(RNA1:RNA24) %>% apply(1,mean)) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+  dplyr::select(GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
   dplyr::select(GENEID,Rhythmic,Both_us,RNA_m,JTK_adjphase) %>% 
@@ -387,7 +397,7 @@ quantiletable %>%
   geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
-ggsave(filename = "Fig2/Plots/supp_quants.png",width=5,height=4)
+ggsave(filename = "Fig2/Plots/supp_quants_chic.png",width=5,height=4)
 
 ### supp 2B 
 prob_len <- 50
@@ -422,4 +432,4 @@ quantiletable %>%
   scale_colour_manual(values = c("red","black"))+
   scale_fill_manual(values = c("red","black")) -> p
 
-ggsave(filename = "Fig2/Plots/suppB.png",p,width=6,height=4)
+ggsave(filename = "Fig2/Plots/suppB_chic.png",p,width=6,height=4)
