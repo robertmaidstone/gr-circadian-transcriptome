@@ -76,6 +76,7 @@ ll  -> RNA_n_jtk_2
 RNA_n_jtk_2
 
 library(Rsubread)
+library(GenomicRanges)
 TSS <- promoterRegions("mm10", upstream=400, downstream=2000)
 
 TSS[TSS$GeneID%in%RNA_n_jtk_2$To,] -> TSS_ourproms 
