@@ -19,6 +19,8 @@ ll_enh %>% mutate(GR=(GRlou_dex_us==0)|(GRlou_WT_us==0)) %>% dplyr::select(ENHAN
   ggplot(aes(x=bc,fill=GR)) + geom_density(alpha=0.4) + scale_x_log10(lim=c(0.08,10)) + scale_fill_manual(values = c("black","red")) +
   theme_bw() + theme(legend.position = "none") + ylab("Density") + xlab("Normalised Counts") -> p_enhancers
 
+ggsave(plot = p_enhancers,filename = "~/GRanalysis_master/GR_CircadianLiverTranscriptome/Fig2/Plots/dnase_enhancers.png",width=4,height=3)
+
 ### promoters
 
 load("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/RNAChIPtogether_GRdist.RData")
@@ -37,3 +39,6 @@ DNase_counts$bc %>% mutate(PROMID=paste(chr,start,end,sep=".")) %>% merge(data_m
 ll_prom %>% mutate(GR=(GRlou_dex_us==0)|(GRlou_WT_us==0)) %>% dplyr::select(PROMID,bc,GR) %>% unique %>% as_tibble %>%
   ggplot(aes(x=bc,fill=GR)) + geom_density(alpha=0.4) + scale_x_log10(lim=c(0.08,10)) + scale_fill_manual(values = c("black","red")) + 
   theme_bw() + theme(legend.position = "none") + ylab("Density") + xlab("Normalised Counts") -> p_promoters
+
+ggsave(plot = p_promoters,filename = "~/GRanalysis_master/GR_CircadianLiverTranscriptome/Fig1/Plots/dnase_promoters.png",width=4,height=3)
+
