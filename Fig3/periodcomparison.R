@@ -220,4 +220,4 @@ ggplot()+
 
 p_phase/p_pval + plot_layout(heights=c(2,1)) -> p_phase_p
 
-ggsave("plots/p_phase_p.png",p_phase_p,height =3.5,width = 6.5)
+ggsave("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Fig3/Plots/p_phase_p.png",p_phase_p,height =3.5,width = 6.5)
