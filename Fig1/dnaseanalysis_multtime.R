@@ -46,8 +46,8 @@ ggsave(plot = p_enhancers,filename = "~/GRanalysis_master/GR_CircadianLiverTrans
 
 ### promoters
 
-load("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/RNAChIPtogether_GRdist.RData")
-
+load("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/promoter_data_final.RData")
+data_master <- data_master_rev
 data_master %>% dplyr::select(PROMID) %>% separate(PROMID,into = c("chr","start","end"),remove = FALSE) %>% unique %>%
   mutate(start=as.numeric(start)) %>% mutate(end=as.numeric(end))-> prom_regions
 
@@ -70,8 +70,6 @@ DNase_counts_14<-bin.bw("GSM1479704_WT_DNAse_ZT14.bw", prom_regions_mm9,appendIn
 DNase_counts_18<-bin.bw("GSM1479705_WT_DNAse_ZT18.bw", prom_regions_mm9,appendIndex.outfile = FALSE)
 DNase_counts_22<-bin.bw("GSM1479706_WT_DNAse_ZT22.bw", prom_regions_mm9,appendIndex.outfile = FALSE)
 
-DNase_counts %>% head
-
 prom_regions_mm9 %>% arrange(chr,start,end) %>% cbind(.,bc2=DNase_counts_2$bc$bc,
                                                       bc6=DNase_counts_6$bc$bc,
                                                       bc10=DNase_counts_10$bc$bc,
@@ -83,11 +81,6 @@ prom_regions_mm9 %>% arrange(chr,start,end) %>% cbind(.,bc2=DNase_counts_2$bc$bc
   ungroup() -> ll_prom
 
 ##
-merge(merge(merge((DNase_counts_2$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),(DNase_counts_6$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),by="PROMID"),
-(DNase_counts_10$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),by="PROMID"),
-(DNase_counts_14$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),by="PROMID"),
-(DNase_counts_18$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),by="PROMID"),
-(DNase_counts_22$bc %>% mutate(PROMID=paste(chr,start,end,sep="."))),by="PROMID") %>% merge(data_master,by="PROMID") -> ll_prom
 
 
 ##
