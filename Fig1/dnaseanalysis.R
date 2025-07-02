@@ -49,13 +49,13 @@ prom_regions <- makeGRangesFromDataFrame(prom_regions,
 prom_regions_mm9<-as.data.frame(easyLift::easyLiftOver(prom_regions,map = "mm10_mm9"))
 prom_regions_mm9 %>% dplyr::select(chr=seqnames,start,end,PROMID) -> prom_regions_mm9
 
-DNase_counts<-bin.bw("~/GRanalysis_master/ABC/GSM1479701_WT_DNAse_ZT02.bw", prom_regions_mm9,appendIndex.outfile = FALSE)
+DNase_counts<-bin.bw("~/GRanalysis_master/ABC/dnase_data/GSM1479701_WT_DNAse_ZT02.bw", prom_regions_mm9,appendIndex.outfile = FALSE)
 
 DNase_counts %>% head
 
 prom_regions_mm9 %>% arrange(chr,start,end) %>% cbind(bc=DNase_counts$bc$bc) %>% merge(data_master,by="PROMID") -> ll_prom
 
-DNase_counts$bc %>% mutate(PROMID=paste(chr,start,end,sep=".")) %>% merge(data_master,by="PROMID") -> ll_prom
+#DNase_counts$bc %>% mutate(PROMID=paste(chr,start,end,sep=".")) %>% merge(data_master,by="PROMID") -> ll_prom
 
 ll_prom %>% mutate(GR=(GRlou_dex_us==0)|(GRlou_WT_us==0)) %>% dplyr::select(PROMID,bc,GR) %>% unique %>% as_tibble %>%
   ggplot(aes(x=bc+.1,fill=GR)) + geom_density(alpha=0.4) + scale_x_log10(lim=c(0.08,100)) + scale_fill_manual(values = c("black","red")) + 
