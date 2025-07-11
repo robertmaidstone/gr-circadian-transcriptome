@@ -1,3 +1,13 @@
+
+load("Data/enh_prom_links_CHIC.RData")
+load("Data/enhancer_withRNA.RData")
+
+enh_prom_links %>% mutate(PROMID=paste(prom_seqnames,prom_start,prom_end,sep=".")) %>% 
+  merge(TSS_ourproms%>% mutate(PROMID=paste(Chr,Start,End,sep=".")),by="PROMID") %>% 
+  merge(.,RNA_n_jtk_2,by.y="To",by.x="GeneID") %>%
+  mutate(ENHANCERID=paste(enh_seqnames,enh_start,enh_end,sep=".")) %>%
+  merge(.,enh_withRNA,by.x="ENHANCERID",by.y="ENHANCERID") -> data_master_all
+
 data_master_all %>% 
   mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
   dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
@@ -35,8 +45,9 @@ data_master_all %>%
   dplyr::select(GeneID,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
   unique  -> chic_all
 
-data_master_all %>% 
-  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+load("Data/paschodata_enhancer.RData")
+
+data_master_all_unorm %>% 
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -48,8 +59,7 @@ data_master_all %>%
   filter(Rhythmic.g==TRUE) %>%
   filter(Both_us.g==TRUE) -> nearest_TT
 
-data_master_all %>% 
-  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+data_master_all_unorm %>% 
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -61,8 +71,7 @@ data_master_all %>%
   filter(Rhythmic.g==TRUE) %>%
   filter(Both_us.g==FALSE) -> nearest_TF
 
-data_master_all %>% 
-  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+data_master_all_unorm %>% 
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -110,3 +119,31 @@ venn.plot <- draw.pairwise.venn(
   fill = c("blue", "red"),
   alpha = 0.5
 )
+
+
+intersect((pairs_chic %>% filter(ENHANCERID %in% ll))$GeneID,(pairs_nn %>% filter(ENHANCERID %in% ll))$To) %>% unique %>% length
+(pairs_nn %>% filter(ENHANCERID %in% ll))$To %>% unique %>% length
+(pairs_chic %>% filter(ENHANCERID %in% ll))$GeneID %>% unique %>% length
+venn.plot <- draw.pairwise.venn(
+  1125, 
+  1643, 
+  408,
+  category = c("nearest", "chic"),
+  fill = c("blue", "red"),
+  alpha = 0.5
+)
+
+
+
+(pairs_nn %>% mutate(tog=paste(To,ENHANCERID)) %>% filter(ENHANCERID %in% ll))$tog %>% unique %>% length
+(pairs_chic %>% mutate(tog=paste(GeneID,ENHANCERID)) %>% filter(ENHANCERID %in% ll))$tog %>% unique %>% length
+intersect((pairs_chic %>% mutate(tog=paste(GeneID,ENHANCERID)) %>% filter(ENHANCERID %in% ll))$tog,(pairs_nn %>% mutate(tog=paste(To,ENHANCERID)) %>% filter(ENHANCERID %in% ll))$tog) %>% unique %>% length
+venn.plot <- draw.pairwise.venn(
+  1327, 
+  2670, 
+  131,
+  category = c("nearest", "chic"),
+  fill = c("blue", "red"),
+  alpha = 0.5
+)
+
