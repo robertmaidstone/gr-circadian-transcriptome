@@ -107,6 +107,8 @@ ourenhs_Granges <- GRanges(seqnames= Rle(ourenhs$seq), ranges = IRanges(ourenhs$
 
 enh_otherend_overlaps<-findOverlaps(query = ourenhs_Granges, subject = chic_otherends_bed)
 
+#to(prom...) returns baits from overlap. So chic_bait_bed[to(prom..)] returns bait regions in order. $X gives link to otherend
+
 chic_filt <- chic[(chic[,7] %in% chic_bait_bed[to(prom_bait_overlaps)]$X ) & (chic[,7] %in% chic_otherends_bed[to(enh_otherend_overlaps)]$X ),]
 
 
