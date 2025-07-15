@@ -48,6 +48,7 @@ data_master_all %>%
 load("Data/paschodata_enhancer.RData")
 
 data_master_all_unorm %>% 
+  filter(prom_dist>1800) %>%
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -60,6 +61,7 @@ data_master_all_unorm %>%
   filter(Both_us.g==TRUE) -> nearest_TT
 
 data_master_all_unorm %>% 
+  filter(prom_dist>1800) %>%
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -72,6 +74,7 @@ data_master_all_unorm %>%
   filter(Both_us.g==FALSE) -> nearest_TF
 
 data_master_all_unorm %>% 
+  filter(prom_dist>1800) %>%
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
@@ -120,6 +123,12 @@ venn.plot <- draw.pairwise.venn(
   alpha = 0.5
 )
 
+data_master_all_unorm %>% 
+  filter(prom_dist>1800)  %>% 
+  as_tibble %>% dplyr::select(To,ENHANCERID) %>% unique -> pairs_nn
+data_master_all %>% as_tibble() %>% dplyr::select(GeneID,ENHANCERID) %>% unique() -> pairs_chic
+
+intersect(pairs_nn$ENHANCERID,pairs_chic$ENHANCERID) -> ll
 
 intersect((pairs_chic %>% filter(ENHANCERID %in% ll))$GeneID,(pairs_nn %>% filter(ENHANCERID %in% ll))$To) %>% unique %>% length
 (pairs_nn %>% filter(ENHANCERID %in% ll))$To %>% unique %>% length
