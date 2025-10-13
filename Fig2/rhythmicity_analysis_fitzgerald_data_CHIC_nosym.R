@@ -67,24 +67,131 @@ RNA_rejig  %>% merge(conv_1 %>% dplyr::select(From,To),by.x = "Gene",by.y="From"
 
 ll  -> RNA_n_jtk_2
 
+#####################
+
+# library(biomaRt)
+# 
+# ensdb <- useEnsembl(biomart="genes", assembly=38, host="grch38.ensembl.org", path="/biomart")
+
+RNA_n_jtk_2
+
+library(Rsubread)
+library(GenomicRanges)
+# TSS <- promoterRegions("mm10", upstream=400, downstream=2000)
+# 
+# TSS[TSS$GeneID%in%RNA_n_jtk_2$To,] -> TSS_ourproms 
+#   
+# TSS_ourproms_Granges <- GRanges(seqnames= Rle(TSS_ourproms$Chr), ranges = IRanges(TSS_ourproms$Start, TSS_ourproms$End))
+
+load("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/promoter_data_final.RData")
+data_master <- data_master_rev
+data_master %>% dplyr::select(PROMID,GENEID) %>% separate(PROMID,into = c("chr","start","end"),remove = FALSE) %>% unique %>%
+  mutate(start=as.numeric(start)) %>% mutate(end=as.numeric(end))-> prom_regions
+
+prom_regions %>% filter(!is.na(start)) -> prom_regions
+
+prom_regions <- makeGRangesFromDataFrame(prom_regions,
+                                         keep.extra.columns = TRUE,
+                                         seqnames.field = "chr",
+                                         start.field = "start",
+                                         end.field = "end")
+TSS_ourproms_Granges <- prom_regions
+
+chic<-read.csv("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/All_step2_washU_text_3.txt", sep = "\t", header = F)
+chic[,7]<- 1:length(chic[,1])
+#Symmetric set is the complete one
+chic_baits<-chic[,c(1:3,7)]
+chic_otherends<-chic[,4:7]
+
+#Bedfiles, GRanges Objects
+chic_otherends_bed<-GRanges(seqnames= Rle(chic_otherends[,1]), ranges = IRanges(chic_otherends[,2], chic_otherends[,3]))
+values(chic_otherends_bed) <- chic_otherends[,4]
+chic_bait_bed<-GRanges(seqnames= Rle(chic_baits[,1]), ranges = IRanges(chic_baits[,2], chic_baits[,3]))
+values(chic_bait_bed) <- chic_baits[,4]
+
+chic_bait_bed<-easyLift::easyLiftOver(chic_bait_bed,map = "mm9_mm10")
+chic_otherends_bed<-easyLift::easyLiftOver(chic_otherends_bed,map = "mm9_mm10")
+
+prom_bait_overlaps<-findOverlaps(query = TSS_ourproms_Granges, subject = chic_bait_bed)
+
+load("Data/enhancer_withRNA.RData")
+enh_withRNA %>% dplyr::select(ENHANCERID) %>% unique %>% separate(ENHANCERID,into=c("seq","start","end")) %>%
+  mutate(start=as.numeric(start)) %>% mutate(end=as.numeric(end))-> ourenhs
+ourenhs_Granges <- GRanges(seqnames= Rle(ourenhs$seq), ranges = IRanges(ourenhs$start, ourenhs$end))
+
+enh_otherend_overlaps<-findOverlaps(query = ourenhs_Granges, subject = chic_otherends_bed)
+
+#to(prom...) returns baits from overlap. So chic_bait_bed[to(prom..)] returns bait regions in order. $X gives link to otherend
+
+#chic_filt <- chic[(chic[,7] %in% chic_bait_bed[to(prom_bait_overlaps)]$X ) & (chic[,7] %in% chic_otherends_bed[to(enh_otherend_overlaps)]$X ),]
+
+## rewrite chic_filt with direct indexing
+# Get bait indices from overlaps with promoters
+bait_indices <- subjectHits(prom_bait_overlaps)
+
+# Get otherEnd indices from overlaps with enhancers
+otherend_indices <- subjectHits(enh_otherend_overlaps)
+
+# Get CHi-C row IDs from bait and otherEnd GRanges
+bait_ids <- chic_bait_bed[bait_indices] %>% mcols() %>% unlist() #every interaction index that is linked to a bait that overlaps with a prom
+otherend_ids <- chic_otherends_bed[otherend_indices] %>% mcols() %>% unlist() #every interaction index that is linked to a otherend that overlaps with a enh
+
+# Filter CHi-C rows where the ID is found in both bait and otherEnd sets
+chic_filt <- chic[chic[,7] %in% intersect(bait_ids, otherend_ids), ] #interactions that link to both prom and enh inour dataset
+#########
+enh_prom_links<-data.frame()
+for(i in chic_filt[,7]){ #this is interaction index
+  which(chic_bait_bed$X==i) -> cbbi
+  which(chic_otherends_bed$X==i) -> coebi
+  TSS_ourproms_Granges[from(prom_bait_overlaps[to(prom_bait_overlaps)==cbbi]),] %>% as.data.frame() -> temp_proms
+  names(temp_proms) <- temp_proms %>% names %>% paste0("prom_",.)
+  ourenhs_Granges[from(enh_otherend_overlaps[to(enh_otherend_overlaps)==coebi]),] %>% as.data.frame() -> temp_enh
+  names(temp_enh) <- temp_enh %>% names %>% paste0("enh_",.)
+  if((dim(temp_enh)[1]>=1)&(dim(temp_proms)[1]>=1)){
+    if(dim(temp_proms)[1]>=2){
+      for(j in 1:(dim(temp_proms)[1])){
+        enh_prom_links<-rbind(enh_prom_links,cbind(temp_proms[j,],temp_enh))
+      }
+    }else{
+  enh_prom_links<-rbind(enh_prom_links,cbind(temp_proms,temp_enh))
+    }
+  }
+}
+
+save(enh_prom_links,file = "Data/enh_prom_links_CHIC_3b.RData")
+#####################
+
 load("Data/enhancer_withRNA.RData")
 
-enh_withRNA %>% head
-merge(RNA_n_jtk_2,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all
+# enh_withRNA %>% head
+# merge(RNA_n_jtk_2,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all
 
-merge(ll_unorm,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all_unorm
-data_master_all_2<-data_master_all
-save(data_master_all_2,data_master_all_unorm,file = "Data/paschodata_enhancer.RData")
+
+# enh_prom_links %>% mutate(PROMID=paste(prom_seqnames,prom_start,prom_end,sep=".")) %>% 
+# merge(TSS_ourproms%>% mutate(PROMID=paste(Chr,Start,End,sep=".")),by="PROMID") %>% 
+#   merge(.,RNA_n_jtk_2,by.y="To",by.x="GeneID") %>%
+#   mutate(ENHANCERID=paste(enh_seqnames,enh_start,enh_end,sep=".")) %>%
+#   merge(.,enh_withRNA,by.x="ENHANCERID",by.y="ENHANCERID") -> data_master_all
+
+enh_prom_links %>% mutate(PROMID=paste(prom_seqnames,prom_start,prom_end,sep=".")) %>% 
+  merge(prom_regions%>% as.data.frame,by="PROMID") %>% 
+  merge(.,RNA_n_jtk_2,by.y="To",by.x="GENEID") %>%
+  mutate(ENHANCERID=paste(enh_seqnames,enh_start,enh_end,sep=".")) %>%
+  merge(.,enh_withRNA,by.x="ENHANCERID",by.y="ENHANCERID") %>%
+  mutate(GeneID=GENEID.y)-> data_master_all
+
+# merge(ll_unorm,enh_withRNA,by.x="To",by.y="GENEID") -> data_master_all_unorm
+# save(data_master_all_unorm,file = "Data/paschodata_enhancer.RData")
 
 (data_master_all %>% 
     mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-    dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+    dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
     unique %>%
     mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-    dplyr::select(To,Rhythmic,Both_us,JTK_adjphase) %>% 
-    as_tibble %>% group_by(To) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+    dplyr::select(GeneID,Rhythmic,Both_us,JTK_adjphase) %>% 
+    as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
     ungroup %>%
-    dplyr::select(To,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
+    dplyr::select(GeneID,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
     unique %>%
     filter(Rhythmic.g==TRUE) %>%
     filter(Both_us.g==TRUE) %>%
@@ -97,13 +204,13 @@ save(data_master_all_2,data_master_all_unorm,file = "Data/paschodata_enhancer.RD
   
   (data_master_all %>% 
      mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-     dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+     dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
      unique %>%
      mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-     dplyr::select(To,Rhythmic,Both_us,JTK_adjphase) %>% 
-     as_tibble %>% group_by(To) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+     dplyr::select(GeneID,Rhythmic,Both_us,JTK_adjphase) %>% 
+     as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
      ungroup %>%
-     dplyr::select(To,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
+     dplyr::select(GeneID,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
      unique %>%
      filter(Rhythmic.g==TRUE) %>%
      filter(Both_us.g==FALSE) %>%
@@ -117,13 +224,13 @@ save(data_master_all_2,data_master_all_unorm,file = "Data/paschodata_enhancer.RD
 #
 data_master_all %>% 
   mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(To,Rhythmic,Both_us,JTK_adjphase) %>% 
-  as_tibble %>% group_by(To) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us,JTK_adjphase) %>% 
+  as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
   ungroup %>%
-  dplyr::select(To,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
+  dplyr::select(GeneID,Rhythmic.g,Both_us.g,JTK_adjphase) %>%
   unique -> phase_plot_data
 
 phase_plot_data %>%
@@ -149,36 +256,36 @@ ggplot()+
 
 pplots/p_pval + plot_layout(heights=c(2,.6)) -> p_phase_p
 
-ggsave("Fig2/Plots/p_phase_p.png",p_phase_p,height =4,width = 6.5)
+ggsave("Fig2/Plots/p_phase_p_chic.png",p_phase_p,height =4,width = 6.5)
 
 #
 
 data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
+  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(GENEID,Rhythmic,Both_us) %>% 
-  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us) %>% 
+  as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
   ungroup %>%
-  dplyr::select(GENEID,Rhythmic.g,Both_us.g) %>%
+  dplyr::select(GeneID,Rhythmic.g,Both_us.g) %>%
   unique %>%
-  dplyr::select(-GENEID) %>%
+  dplyr::select(-GeneID) %>%
   table 
 
 # Venn Diagram ------------------------------------------------------------
 
 data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
+  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  dplyr::select(PROMID.x,GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(GENEID,Rhythmic,Both_us) %>% 
-  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us) %>% 
+  as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
   ungroup %>%
-  dplyr::select(GENEID,Rhythmic.g,Both_us.g) %>%
+  dplyr::select(GeneID,Rhythmic.g,Both_us.g) %>%
   unique %>%
-  dplyr::select(-GENEID) -> venn_data
+  dplyr::select(-GeneID) -> venn_data
 
 library(VennDiagram) 
 venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_data$Rhythmic.g)), 
@@ -188,14 +295,24 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
              alpha = c(0.5, 0.5),
              lwd =1,
              cat.cex=0.6,
-             height=1500,width=1500, "Fig2/Plots/venn_diagram.png")
+             height=1500,width=1500, "Fig2/Plots/venn_diagram_chic.png")
 
 ### E ###
+data_master_all %>% 
+  mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA) %>%
+  unique %>%
+  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us,RNA) %>% 
+  as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
+  mutate(RNA_m=median(RNA)) %>%
+  ungroup -> data_model
+
 data_model %>%
   dplyr::mutate(Rhy=Rhythmic.g) %>%
   dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
+  dplyr::select(GeneID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GeneID) %>%
   dplyr::mutate(GR_any=any(GR)) %>%
   dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
   dplyr::mutate(m.RNA=mean(RNA)) %>% 
@@ -216,14 +333,14 @@ data_model %>%
   theme(legend.position = c(0.75, .92),legend.background = element_blank()) +
   guides(colour="none")  + scale_x_log10("Normalised Counts") -> RNA_plot
 
-ggsave(RNA_plot,filename = "Fig2/Plots/rna_boxplots_fitz.png",height = 3,width = 4)
+ggsave(RNA_plot,filename = "Fig2/Plots/rna_boxplots_fitz_chic.png",height = 3,width = 4)
 
 
 data_model %>%
   dplyr::mutate(Rhy=Rhythmic.g) %>%
   dplyr::mutate(GR=Both_us.g) %>%
-  dplyr::select(GENEID,RNA=RNA_m,GR,Rhy) %>%
-  group_by(GENEID) %>%
+  dplyr::select(GeneID,RNA=RNA_m,GR,Rhy) %>%
+  group_by(GeneID) %>%
   dplyr::mutate(GR_any=any(GR)) %>%
   dplyr::mutate(GR_any=ifelse(is.na(GR_any),FALSE,GR_any)) %>%
   dplyr::mutate(m.RNA=mean(RNA)) %>% 
@@ -265,9 +382,9 @@ temp_dat %>%
 # modelling ---------------------------------------------------------------
 
 data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  mutate(GENEID=GeneID,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
   mutate(RNA_m=data_master_all %>% dplyr::select(RNA1:RNA24) %>% apply(1,mean)) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+  dplyr::select(GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
   dplyr::select(GENEID,Rhythmic,Both_us,RNA_m,JTK_adjphase) %>% 
@@ -316,7 +433,7 @@ quantiletable %>%
   geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
-ggsave(filename = "Fig2/Plots/supp_quants.png",width=5,height=4)
+ggsave(filename = "Fig2/Plots/supp_quants_chic.png",width=5,height=4)
 
 ### supp 2B 
 prob_len <- 50
@@ -351,4 +468,4 @@ quantiletable %>%
   scale_colour_manual(values = c("red","black"))+
   scale_fill_manual(values = c("red","black")) -> p
 
-ggsave(filename = "Fig2/Plots/suppB.png",p,width=6,height=4)
+ggsave(filename = "Fig2/Plots/suppB_chic.png",p,width=6,height=4)
