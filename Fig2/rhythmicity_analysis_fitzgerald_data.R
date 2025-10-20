@@ -191,6 +191,20 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
              height=1500,width=1500, "Fig2/Plots/venn_diagram.png")
 
 ### E ###
+
+# modelling ---------------------------------------------------------------
+
+data_master_all %>% 
+  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
+  mutate(RNA_m=data_master_all %>% dplyr::select(RNA1:RNA24) %>% apply(1,mean)) %>%
+  dplyr::select(PROMID,GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
+  unique %>%
+  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
+  dplyr::select(GENEID,Rhythmic,Both_us,RNA_m,JTK_adjphase) %>% 
+  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us))  %>%
+  dplyr::select(GENEID,Rhythmic.g,Both_us.g,RNA_m,JTK_adjphase) %>%
+  mutate(RNA_m_log10=log10(RNA_m)) %>% unique -> data_model
+
 data_model %>%
   dplyr::mutate(Rhy=Rhythmic.g) %>%
   dplyr::mutate(GR=Both_us.g) %>%
@@ -262,18 +276,7 @@ temp_dat %>%
   mutate(strand=".") %>%
   write.table(file = "Data/GRboundRhythmicenhancers_forHomer.bed",sep = "\t",quote = FALSE,row.names = F)
 
-# modelling ---------------------------------------------------------------
 
-data_master_all %>% 
-  mutate(GENEID=To,JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  mutate(RNA_m=data_master_all %>% dplyr::select(RNA1:RNA24) %>% apply(1,mean)) %>%
-  dplyr::select(PROMID,GENEID,ENHANCERID,RNA_m,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,JTK_adjphase) %>%
-  unique %>%
-  mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(GENEID,Rhythmic,Both_us,RNA_m,JTK_adjphase) %>% 
-  as_tibble %>% group_by(GENEID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us))  %>%
-  dplyr::select(GENEID,Rhythmic.g,Both_us.g,RNA_m,JTK_adjphase) %>%
-  mutate(RNA_m_log10=log10(RNA_m)) %>% unique -> data_model
 
 # logistic ----------------------------------------------------------------
 

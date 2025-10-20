@@ -300,12 +300,12 @@ venn.diagram(list(`GR Bound` = which(venn_data$Both_us.g),Rhythmic = which(venn_
 ### E ###
 data_master_all %>% 
   mutate(JTK_pvalue=JTK_pvalue.x,JTK_adjphase=JTK_adjphase.x) %>%
-  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA) %>%
+  mutate(RNA_m=data_master_all %>% dplyr::select(RNA1:RNA24) %>% apply(1,mean)) %>%
+  dplyr::select(GeneID,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA_m) %>%
   unique %>%
   mutate(Both_us=(Dex_us==0),Rhythmic=JTK_pvalue<0.05) %>% 
-  dplyr::select(GeneID,Rhythmic,Both_us,RNA) %>% 
+  dplyr::select(GeneID,Rhythmic,Both_us,RNA_m) %>% 
   as_tibble %>% group_by(GeneID) %>% dplyr::mutate(Rhythmic.g=any(Rhythmic),Both_us.g=any(Both_us)) %>% 
-  mutate(RNA_m=median(RNA)) %>%
   ungroup -> data_model
 
 data_model %>%
