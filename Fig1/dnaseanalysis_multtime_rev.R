@@ -4,7 +4,7 @@ library(PopSV)
 library(tidyverse)
 library(effectsize)
 
-load("~/GRanalysis_master/GR_CircadianLiverTranscriptome/Data/enhancer_data_final_rev.RData")
+load("~/GRanalysis_master/Fig2/Data/enhancer_data_final_rev.RData")
 
 enh_allgenes %>% dplyr::select(ENHANCERID) %>% separate(ENHANCERID,into = c("chr","start","end"),remove = FALSE) %>% unique %>%
   mutate(start=as.numeric(start)) %>% mutate(end=as.numeric(end))-> enh_regions
