@@ -223,11 +223,11 @@ quantiletable %>%
   geom_point(position = position_dodge(width = pd_width)) + theme_bw() + ylab("OR") + xlab("")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))-> p_boxplot
 
-ggsave(filename = "Fig1/Plots/supp_quants.png",width=5,height=4)
+ggsave(filename = "Fig1/Plots/supp1B.png",width=5,height=4)
 
-quantiletable %>%
-  mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
-  ggplot(aes(x=medRNA,y=numberRhy)) + geom_point() + scale_x_log10()
+# quantiletable %>%
+#   mutate(row=factor(row,ordered=T,levels=unique(quantiletable$row))) %>% 
+#   ggplot(aes(x=medRNA,y=numberRhy)) + geom_point() + scale_x_log10()
 
 
 # proportion rhythmic (supplemental 1A) -----------------------------------
@@ -265,4 +265,4 @@ quantiletable %>%
   scale_colour_manual(values = c("red","black"))+
   scale_fill_manual(values = c("red","black")) -> p
 
-ggsave(filename = "Fig1/plots/suppB.png",p,width=6,height=4)
+ggsave(filename = "Fig1/plots/supp1A.png",p,width=6,height=4)

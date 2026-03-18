@@ -2,6 +2,7 @@
 library(tidyverse)
 library(patchwork)
 
+setwd("~/GRanalysis_master/GR_CircadianLiverTranscriptome/")
 load(file="Data/RNAChIPtogether_GRdist.RData")
 load("Data/promoter_counts_reverb.RData")
 
