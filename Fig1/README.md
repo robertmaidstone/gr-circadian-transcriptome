@@ -39,10 +39,9 @@ Requires:
 Creates:
 -   fig 1D
 
-## dnaseanalysis_multtime_rev.R
+## supfig1C_dnaseanalysis_multtime_rev.R
 
 Requires:
--   enhancer_data_final_rev.RData
 -   promoter_data_final.RData
 -   GSM1479701_WT_DNAse_ZT02.bw
 -   GSM1479702_WT_DNAse_ZT06.bw
@@ -52,10 +51,10 @@ Requires:
 -   GSM1479706_WT_DNAse_ZT22.bw
 
 Creates:
+-   Sup Fig 1C
 
+## compareRhythms_rhythmicity_analysis.R
 
-## compareRhythms_fitzgerald_data.R
-
-fig1C using compareRhythms instead of JTK-cycle - this might go into supplemental
+-   Code for analysis from fig1C using compareRhythms instead of JTK-cycle can be used as a comparison of the two methods
 
 Yang G, Chen L, Grant GR, Paschos G, Song WL, Musiek ES, Lee V, McLoughlin SC, Grosser T, Cotsarelis G, FitzGerald GA. Timing of expression of the core clock gene Bmal1 influences its effects on aging and survival. Sci Transl Med. 2016 Feb 3;8(324):324ra16. doi: 10.1126/scitranslmed.aad3305. Epub 2016 Feb 3. PMID: 26843191; PMCID: PMC4870001.
