@@ -13,6 +13,13 @@
 gr-circadian-transcriptome/
 ├── Data/                     # Raw and processed data (not included)
 ├── Fig1/                     # code for plots from figure 1
+       ├── Plots/             # folder in which plots will be generated (not included)
+       ├── fig1B_TF_RNA_densityplots.R
+       ├── fig1CE_rhythmicity_analysis.R
+       ├── fig1D_clustering_dynamic_profiles.R
+       ├── supfig1C_dnaseanalysis_multtime_rev.R
+       ├── compareRhythms_rhythmicity_analysis.R
+       ├── README.md          #  more details on Fig1 code
 ├── Fig2/                     # code for plots from figure 2
 ├── Fig3/                     # code for plots from figure 3
 ├── Fig4/                     # code for plots from figure 4
