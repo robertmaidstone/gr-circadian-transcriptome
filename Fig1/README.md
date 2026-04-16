@@ -28,13 +28,14 @@ Creates:
 -   promoter_data_final.RData - ChIP and RNA from Koike et al., and Reverb ChIP together
 -   fig1B
 
-## clustering_dynamic_profiles.R
+## fig1D_clustering_dynamic_profiles.R
 
-fig 1D
+Requires:
+-   RNAChIPtogether_GRdist.RData"
+-   paschodata.RData
 
-## TF_RNA_density_plots.R
-
-fig 1B
+Creates:
+-   fig 1D
 
 ## compareRhythms_fitzgerald_data.R
 
