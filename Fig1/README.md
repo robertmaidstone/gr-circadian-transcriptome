@@ -39,6 +39,21 @@ Requires:
 Creates:
 -   fig 1D
 
+## dnaseanalysis_multtime_rev.R
+
+Requires:
+-   enhancer_data_final_rev.RData
+-   promoter_data_final.RData
+-   GSM1479701_WT_DNAse_ZT02.bw
+-   GSM1479702_WT_DNAse_ZT06.bw
+-   GSM1479703_WT_DNAse_ZT10.bw
+-   GSM1479704_WT_DNAse_ZT14.bw
+-   GSM1479705_WT_DNAse_ZT18.bw
+-   GSM1479706_WT_DNAse_ZT22.bw
+
+Creates:
+
+
 ## compareRhythms_fitzgerald_data.R
 
 fig1C using compareRhythms instead of JTK-cycle - this might go into supplemental
