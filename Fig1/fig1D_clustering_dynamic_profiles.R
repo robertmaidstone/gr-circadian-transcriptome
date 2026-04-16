@@ -5,8 +5,8 @@ library(tidyverse)
 library(patchwork)
 library(pracma)
 
-load(file="Data/RNAChIPtogether_GRdist.RData")
-load("Data/paschodata.RData")
+load(file="../Data/RNAChIPtogether_GRdist.RData")
+load("../Data/paschodata.RData")
 
 data_master_all_unorm %>% 
   dplyr::select(PROMID,To,ENHANCERID,WT_us=(GRlou_WT_us),Dex_us=GRlou_dex_us,JTK_pvalue,RNA1:RNA24) %>%

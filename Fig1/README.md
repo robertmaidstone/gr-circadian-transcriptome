@@ -2,6 +2,8 @@
 
 Code to recreate figure 1
 
+Fig 1A is a cartoon made using powerpoint, all other plots are created using the following code.
+
 ## fig1CE_rhythmicity_analysis.R
 
 Requires:
