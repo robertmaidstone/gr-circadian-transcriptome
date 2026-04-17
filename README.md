@@ -19,7 +19,6 @@ gr-circadian-transcriptome/
               ├── 01_ProcessDiffbindChIP.R
               ├── 02_CombineChIPandRNA.R
               ├── 03_IntersectChIPandRNAwithGRChIP.R
-              ├── 04_Normalise.R
               ├── README.md                 # more details on data processing code
               ├── samplesheet_TFs_nocontrol.csv                 # samplesheet example         
        ├── fig1B_TF_RNA_densityplots.R
