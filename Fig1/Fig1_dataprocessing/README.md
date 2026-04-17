@@ -53,13 +53,22 @@ Creates:
 -   RNAproms_ChIP_intersect.bed - overlaps created using bedtools (command given in R script)
 -   RNAChIPtogether.RData - main output
 
-## 02_IntersectChIPandRNAwithGRChIP.R
+## 03_IntersectChIPandRNAwithGRChIP.R
 
 Adds in GR ChIP-seq data
 
 Requires:
 -   RNAChIPtogether.RData
 -   GR_limdata.RData - Lim et al., GR ChIP-seq data, not used in final publication, but was used early as a check.
+-   GR_limdata_6am.RData - Lim et al., GR ChIP-seq data, not used in final publication, but was used early as a check.
+-   GR_limdata_6pm.RData - Lim et al., GR ChIP-seq data, not used in final publication, but was used early as a check.
+-   GR_limdata_pred.RData - Lim et al., GR ChIP-seq data, not used in final publication, but was used early as a check.
+-   GR_dex.RData - Novel GR data, dexamethosoline
+-   GR_WT.RData - Novel GR data, wild type
+-   prom_overlapping_enhancers_sort.bed
 
 Creates:
--   prom_overlapping_enhancers.bed - not true enhancers, just binding sites that overlap our promoters
+-   RNAChIPtogether_GRdist.RData - main output
+
+Other: 
+-   Code writes GR regions (from the individual GR data files) into bed files, which are then compared with prom_overlapping_enhancers_sort.bed using bedtools to find closest. This is done upstream and downstream and the resulting files are read in and combined with main data.
