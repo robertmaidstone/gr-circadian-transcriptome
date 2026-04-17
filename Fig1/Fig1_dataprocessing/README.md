@@ -2,13 +2,13 @@
 
 Code to process omics data used for figure 1
 
-## 01_ProcessDiffbindChIP.R
+## 00_Diffbind_dbacount_TFs.R
 
-Creates RPKM and read tables as well as control corrected versions for each timepoint. Whilst filtering out black listed regions
+Counts RNA-seq data onto promoter regions.
 
 Requires:
 -   RNA_promoters.bed - promoter regions for reads to be counted on
--   samplesheet_TFs_nocontrol.csv - sample sheet of data files to be counted (example given)
+-   samplesheet_TFs_nocontrol.csv - sample sheet of data files to be counted (example given in repository)
 
 Creates:
 -   promoter_counts_nov19.RData 
