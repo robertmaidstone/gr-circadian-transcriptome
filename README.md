@@ -14,6 +14,14 @@ gr-circadian-transcriptome/
 ├── Data/                     # Raw and processed data (not included)
 ├── Fig1/                     # code for plots from figure 1
        ├── Plots/                    # folder in which Fig1 plots will be generated (not included)
+       ├── Fig1_dataprocessing/                    # dataprocessing of omics data, prior to analysis
+              ├── 00_Diffbind_dbacount_TFs.R
+              ├── 01_ProcessDiffbindChIP.R
+              ├── 02_CombineChIPandRNA.R
+              ├── 03_IntersectChIPandRNAwithGRChIP.R
+              ├── 04_Normalise.R
+              ├── README.md                 # more details on data processing code
+              ├── samplesheet_TFs_nocontrol.csv                 # samplesheet example         
        ├── fig1B_TF_RNA_densityplots.R
        ├── fig1CE_rhythmicity_analysis.R
        ├── fig1D_clustering_dynamic_profiles.R
