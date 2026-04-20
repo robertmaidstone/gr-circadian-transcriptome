@@ -28,7 +28,16 @@ gr-circadian-transcriptome/
        ├── compareRhythms_rhythmicity_analysis.R
        ├── README.md                 #  more details on Fig1 code
 ├── Fig2/                     # code for plots from figure 2
+       ├── Fig2_dataprocessing/                    # dataprocessing of omics data, prior to analysis
+              ├── 00_dbacount_h3k4me1.R
+              ├── 00_dbacount_TFs.R
+              ├── 01_ProcessDiffbindChIP.R
+              ├── 02_CombineChIP.R
+              ├── 03_IntersectChIPwithGRChIP.R
+              ├── 04_Filteroutpromoters.R
+              ├── README.md                 # more details on data processing code
        ├── Plots/                    # folder in which Fig2 plots will be generated (not included)
+       ├── fig2DE_rhythmicity_analysis.R
        ├── supfig2C_dnaseanalysis_multtime_rev.R
        ├── README.md                 #  more details on Fig2 code
 ├── Fig3/                     # code for plots from figure 3
